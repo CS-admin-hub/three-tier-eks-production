@@ -1,14 +1,15 @@
-# frontend/Dockerfile
 FROM node:18-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+
+# Delete stale lock file and do fresh install
+RUN rm -f package-lock.json && \
+    npm install --force
 
 COPY . .
 
 ENV REACT_APP_BACKEND_URL=/api/tasks
-
 RUN npm run build
 
 FROM nginx:alpine
