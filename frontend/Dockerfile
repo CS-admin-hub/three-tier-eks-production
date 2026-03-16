@@ -1,14 +1,12 @@
 # frontend/Dockerfile
-FROM node:16-alpine AS builder
+FROM node:18-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 COPY . .
 
-# Fix for Node 16+ OpenSSL compatibility with react-scripts 4.x
-ENV NODE_OPTIONS=--openssl-legacy-provider
 ENV REACT_APP_BACKEND_URL=/api/tasks
 
 RUN npm run build
