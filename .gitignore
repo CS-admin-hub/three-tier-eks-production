@@ -1,0 +1,21 @@
+﻿# SSH Keys - NEVER commit
+*.pem
+*.ppk
+
+# Environment files
+.env
+.env.*
+*.env
+
+# Downloaded at deploy time
+karpenter-cf.yaml
+awscliv2.zip
+velero.tar.gz
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
