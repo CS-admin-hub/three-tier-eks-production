@@ -1,8 +1,5 @@
 #!/bin/bash
 # scripts/06-install-controllers.sh
-# Installs all cluster controllers: Karpenter, ALB, Metrics Server, ESO, Kyverno
-# Usage: ./06-install-controllers.sh
-
 set -e
 echo "=== Installing Cluster Controllers ==="
 
@@ -21,7 +18,7 @@ eksctl create iamserviceaccount \
   --attach-policy-arn arn:aws:iam::${AWS_ACCOUNT_ID}:policy/KarpenterControllerPolicy-${CLUSTER_NAME} \
   --approve --region ${AWS_DEFAULT_REGION}
 
-helm repo add karpenter https://charts.karpenter.sh/
+helm repo add karpenter https://charts.karpenter.sh/ 2>/dev/null || true
 helm repo update
 
 helm install karpenter oci://public.ecr.aws/karpenter/karpenter \
@@ -45,23 +42,35 @@ kubectl get nodepool
 echo "  NodePool applied"
 
 # --- 2. Metrics Server ---
-echo ">>> Installing Metrics Server..."
-kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-sleep 30
+echo ">>> Checking Metrics Server..."
+if kubectl get deployment metrics-server -n kube-system 2>/dev/null; then
+  echo "  Metrics Server already installed - skipping"
+else
+  kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+  sleep 30
+fi
 kubectl top nodes
-echo "  Metrics Server installed"
+echo "  Metrics Server ready"
 
 # --- 3. ALB Ingress Controller ---
 echo ">>> Installing ALB Ingress Controller..."
+curl -O https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/v2.7.2/docs/install/iam_policy.json
+
+aws iam create-policy \
+  --policy-name AWSLoadBalancerControllerIAMPolicy \
+  --policy-document file://iam_policy.json 2>/dev/null || \
+  echo "  ALB policy already exists - continuing"
+
 eksctl create iamserviceaccount \
   --cluster=${CLUSTER_NAME} \
   --namespace=kube-system \
   --name=aws-load-balancer-controller \
   --role-name AmazonEKSLoadBalancerControllerRole \
-  --attach-policy-arn=arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess \
-  --approve
+  --attach-policy-arn=arn:aws:iam::${AWS_ACCOUNT_ID}:policy/AWSLoadBalancerControllerIAMPolicy \
+  --approve \
+  --region=${AWS_DEFAULT_REGION}
 
-helm repo add eks https://aws.github.io/eks-charts
+helm repo add eks https://aws.github.io/eks-charts 2>/dev/null || true
 helm repo update
 
 helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
@@ -75,7 +84,7 @@ echo "  ALB Controller installed"
 
 # --- 4. External Secrets Operator ---
 echo ">>> Installing External Secrets Operator..."
-helm repo add external-secrets https://charts.external-secrets.io
+helm repo add external-secrets https://charts.external-secrets.io 2>/dev/null || true
 helm repo update
 
 helm install external-secrets external-secrets/external-secrets \
@@ -87,7 +96,7 @@ echo "  External Secrets Operator installed"
 
 # --- 5. Kyverno ---
 echo ">>> Installing Kyverno..."
-helm repo add kyverno https://kyverno.github.io/kyverno/
+helm repo add kyverno https://kyverno.github.io/kyverno/ 2>/dev/null || true
 helm repo update
 
 helm install kyverno kyverno/kyverno \
@@ -99,10 +108,11 @@ echo "  Kyverno installed"
 echo ""
 echo "=== All Controllers Installed ==="
 echo ""
-echo "NEXT STEPS (do these manually):"
-echo "  1. AWS Console → ACM → Request Certificate for your domain"
-echo "  2. AWS Console → WAF → Create Web ACL → copy ARN"
-echo "  3. Update k8s_manifests/ingress/full_stack_lb.yml with cert + WAF ARNs"
-echo "  4. Update k8s_manifests/security/service-accounts.yaml with Account ID"
-echo "  5. Store secret: aws secretsmanager create-secret --name prod/three-tier/mongodb ..."
-echo "  6. Then run: kubectl apply -f k8s_manifests/ (in order)"
+echo "NEXT STEPS:"
+echo "  1. Store MongoDB secret in Secrets Manager"
+echo "  2. Update YAML placeholders with Account ID"
+echo "  3. Deploy k8s manifests in order"
+```
+
+---
+
