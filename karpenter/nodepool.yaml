@@ -10,7 +10,6 @@ spec:
         intent: apps
     spec:
       nodeClassRef:
-        # apiVersion removed in v1.0.0
         group: karpenter.k8s.aws
         kind: EC2NodeClass
         name: default
@@ -29,5 +28,5 @@ spec:
     cpu: "16"
     memory: 32Gi
   disruption:
-    consolidationPolicy: WhenUnderutilized
+    consolidationPolicy: WhenEmptyOrUnderutilized  # fixed from WhenUnderutilized
     consolidateAfter: 30s
