@@ -19,3 +19,6 @@ velero.tar.gz
 # OS
 .DS_Store
 Thumbs.db
+docker-compose-test.yml
+scripts/aws/
+scripts/velero-v1.13.0-linux-amd64/
