@@ -45,7 +45,7 @@ spec:
               role: backend
       containers:
         - name: backend
-          image: <ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/three-tier-backend:latest
+          image: 851725602228.dkr.ecr.us-east-1.amazonaws.com/three-tier-backend:latest
           ports:
             - containerPort: 8080
           env:

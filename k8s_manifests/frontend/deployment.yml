@@ -44,7 +44,7 @@ spec:
               role: frontend
       containers:
         - name: frontend
-          image: <ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/three-tier-frontend:latest
+          image: 851725602228.dkr.ecr.us-east-1.amazonaws.com/three-tier-frontend:latest
           ports:
             - containerPort: 3000
           livenessProbe:
@@ -69,6 +69,7 @@ spec:
               memory: "256Mi"
               cpu: "200m"
           # securityContext:
+
           #   runAsNonRoot: true
           #   runAsUser: 1000
           #   readOnlyRootFilesystem: true
