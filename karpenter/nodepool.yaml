@@ -1,3 +1,4 @@
+# karpenter/nodepool.yaml
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
@@ -13,24 +14,36 @@ spec:
         kind: EC2NodeClass
         name: default
       requirements:
-        #  VALID KEYS ONLY
+        # Allow both architectures to match EC2NodeClass AMIs
         - key: kubernetes.io/arch
           operator: In
           values:
             - amd64
+            - arm64
         - key: node.kubernetes.io/instance-type
+          # Include all possible instance types that might be needed
+
           operator: In
           values:
+            - t3.small
             - t3.medium
             - t3.large
+            - t4g.small
+            - t4g.medium
+            - t4g.large
         - key: topology.kubernetes.io/zone
+          # Availability zones
+
           operator: In
           values:
             - us-east-1a
             - us-east-1b
-        - key: karpenter.sh/capacity-type #  THIS IS ALLOWED
+        - key: karpenter.sh/capacity-type
+          # Allow both spot and on-demand
+
           operator: In
           values:
+            - spot
             - on-demand
       expireAfter: 720h
   limits:
@@ -39,54 +52,3 @@ spec:
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 30s
-
-# # karpenter/nodepool.yaml
-# apiVersion: karpenter.sh/v1
-# kind: NodePool
-# metadata:
-#   name: default
-# spec:
-#   template:
-#     metadata:
-#       labels:
-#         intent: apps
-#     spec:
-#       nodeClassRef:
-#         group: karpenter.k8s.aws
-#         kind: EC2NodeClass
-#         name: default
-#       requirements:
-#         # Add architecture requirement to match available AMIs
-#         - key: kubernetes.io/arch
-#           operator: In
-#           values:
-#             - amd64
-#             - arm64
-#         - key: node.kubernetes.io/instance-type
-#           # Instance types
-#           operator: In
-#           values:
-#             - t3.small
-#             - t3.medium
-#             - t3.large
-#             - t4g.small
-#             - t4g.medium
-#         - key: topology.kubernetes.io/zone
-#           # Availability zones
-#           operator: In
-#           values:
-#             - us-east-1a
-#             - us-east-1b
-#         - key: karpenter.sh/capacity-type
-#           # Capacity type
-#           operator: In
-#           values:
-#             - spot
-#             - on-demand
-#       expireAfter: 720h
-#   limits:
-#     cpu: "16"
-#     memory: 32Gi
-#   disruption:
-#     consolidationPolicy: WhenEmptyOrUnderutilized
-#     consolidateAfter: 30s
