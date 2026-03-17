@@ -17,15 +17,41 @@ spec:
       annotations:
         prometheus.io/scrape: "false"
     spec:
+      # CRITICAL: Ensures the mounted EBS volume has correct permissions for MongoDB user (UID 999)
+      securityContext:
+        fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch # Speeds up pod startup
       containers:
         - name: mongodb
-          image: mongo:6.0 # Pinned - never use latest in production
+          image: mongo:6.0
           ports:
             - containerPort: 27017
+          # Environment variables for MongoDB authentication
+
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: MONGO_USERNAME
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: MONGO_PASSWORD
+            - name: MONGO_INITDB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: MONGO_DATABASE
           livenessProbe:
             exec:
               command:
                 - mongosh
+                - -u
+                - "$(MONGO_INITDB_ROOT_USERNAME)"
+                - -p
+                - "$(MONGO_INITDB_ROOT_PASSWORD)"
                 - --eval
                 - "db.adminCommand('ping')"
             initialDelaySeconds: 30
@@ -35,6 +61,10 @@ spec:
             exec:
               command:
                 - mongosh
+                - -u
+                - "$(MONGO_INITDB_ROOT_USERNAME)"
+                - -p
+                - "$(MONGO_INITDB_ROOT_PASSWORD)"
                 - --eval
                 - "db.adminCommand('ping')"
             initialDelaySeconds: 5
@@ -48,7 +78,7 @@ spec:
               cpu: "300m"
           securityContext:
             runAsNonRoot: true
-            runAsUser: 999 # mongodb runs as uid 999
+            runAsUser: 999 # MongoDB runs as uid 999
             allowPrivilegeEscalation: false
           volumeMounts:
             - name: mongo-data
@@ -59,7 +89,8 @@ spec:
         name: mongo-data
       spec:
         accessModes: [ReadWriteOnce]
-        storageClassName: gp3 # Faster and cheaper than gp2
+        volumeMode: Filesystem
+        storageClassName: gp3
         resources:
           requests:
             storage: 10Gi
