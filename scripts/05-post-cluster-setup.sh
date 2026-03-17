@@ -1,8 +1,5 @@
 #!/bin/bash
 # scripts/05-post-cluster-setup.sh
-# Post-cluster tasks: tag subnets/SGs, create IRSA roles, create StorageClass
-# Usage: ./05-post-cluster-setup.sh
-
 set -e
 echo "=== Post Cluster Setup ==="
 
@@ -10,12 +7,12 @@ export CLUSTER_NAME=three-tier-cluster
 export AWS_DEFAULT_REGION=us-east-1
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
-# Get OIDC URL for IRSA trust policies
+# Get OIDC URL
 OIDC_URL=$(aws eks describe-cluster --name ${CLUSTER_NAME} \
   --query 'cluster.identity.oidc.issuer' --output text | sed 's|https://||')
 echo "OIDC URL: ${OIDC_URL}"
 
-# --- Tag subnets for Karpenter discovery ---
+# --- Tag subnets ---
 echo ">>> Tagging subnets for Karpenter..."
 for SUBNET in $(aws eks describe-cluster --name ${CLUSTER_NAME} \
   --query 'cluster.resourcesVpcConfig.subnetIds' --output text); do
@@ -24,7 +21,7 @@ for SUBNET in $(aws eks describe-cluster --name ${CLUSTER_NAME} \
   echo "  Tagged subnet: ${SUBNET}"
 done
 
-# --- Tag security groups for Karpenter discovery ---
+# --- Tag security groups ---
 echo ">>> Tagging security groups for Karpenter..."
 for SG in $(aws eks describe-cluster --name ${CLUSTER_NAME} \
   --query 'cluster.resourcesVpcConfig.clusterSecurityGroupId' --output text); do
@@ -33,49 +30,55 @@ for SG in $(aws eks describe-cluster --name ${CLUSTER_NAME} \
   echo "  Tagged SG: ${SG}"
 done
 
-# --- Create IRSA roles using trust policy files from iam/ folder ---
-echo ">>> Creating IRSA roles..."
-
-# Replace placeholders in trust policies
+# --- Replace placeholders in trust policies ---
+echo ">>> Preparing trust policies..."
 sed "s|<ACCOUNT_ID>|${AWS_ACCOUNT_ID}|g; s|<OIDC_URL>|${OIDC_URL}|g" \
   iam/backend-trust-policy.json > /tmp/backend-trust.json
-
 sed "s|<ACCOUNT_ID>|${AWS_ACCOUNT_ID}|g; s|<OIDC_URL>|${OIDC_URL}|g" \
   iam/external-secrets-trust-policy.json > /tmp/ext-secrets-trust.json
-
 sed "s|<ACCOUNT_ID>|${AWS_ACCOUNT_ID}|g; s|<OIDC_URL>|${OIDC_URL}|g" \
   iam/fluentbit-trust-policy.json > /tmp/fluentbit-trust.json
-
 sed "s|<ACCOUNT_ID>|${AWS_ACCOUNT_ID}|g; s|<OIDC_URL>|${OIDC_URL}|g" \
   iam/velero-trust-policy.json > /tmp/velero-trust.json
 
+# Helper function - create role only if it doesn't exist
+create_role_if_not_exists() {
+  local ROLE_NAME=$1
+  local TRUST_FILE=$2
+  if aws iam get-role --role-name ${ROLE_NAME} 2>/dev/null; then
+    echo "  Role ${ROLE_NAME} already exists - skipping create"
+  else
+    aws iam create-role --role-name ${ROLE_NAME} \
+      --assume-role-policy-document file://${TRUST_FILE}
+    echo "  Created: ${ROLE_NAME}"
+  fi
+}
+
+echo ">>> Creating IRSA roles..."
+
 # Backend IRSA Role
-aws iam create-role --role-name BackendIRSARole \
-  --assume-role-policy-document file:///tmp/backend-trust.json
+create_role_if_not_exists BackendIRSARole /tmp/backend-trust.json
 aws iam attach-role-policy --role-name BackendIRSARole \
   --policy-arn arn:aws:iam::aws:policy/SecretsManagerReadWrite
-echo "  Created: BackendIRSARole"
+echo "  Attached policy to: BackendIRSARole"
 
-# External Secrets IRSA Role
-aws iam create-role --role-name ExternalSecretsRole \
-  --assume-role-policy-document file:///tmp/ext-secrets-trust.json
+# External Secrets IRSA Role - FIXED policy name
+create_role_if_not_exists ExternalSecretsRole /tmp/ext-secrets-trust.json
 aws iam attach-role-policy --role-name ExternalSecretsRole \
-  --policy-arn arn:aws:iam::aws:policy/SecretsManagerReadOnly
-echo "  Created: ExternalSecretsRole"
+  --policy-arn arn:aws:iam::aws:policy/SecretsManagerReadWrite
+echo "  Attached policy to: ExternalSecretsRole"
 
 # FluentBit IRSA Role
-aws iam create-role --role-name FluentBitRole \
-  --assume-role-policy-document file:///tmp/fluentbit-trust.json
+create_role_if_not_exists FluentBitRole /tmp/fluentbit-trust.json
 aws iam attach-role-policy --role-name FluentBitRole \
   --policy-arn arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
-echo "  Created: FluentBitRole"
+echo "  Attached policy to: FluentBitRole"
 
 # Velero IRSA Role
-aws iam create-role --role-name VeleroRole \
-  --assume-role-policy-document file:///tmp/velero-trust.json
+create_role_if_not_exists VeleroRole /tmp/velero-trust.json
 aws iam attach-role-policy --role-name VeleroRole \
   --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
-echo "  Created: VeleroRole"
+echo "  Attached policy to: VeleroRole"
 
 # --- Create gp3 StorageClass ---
 echo ">>> Creating gp3 StorageClass..."
