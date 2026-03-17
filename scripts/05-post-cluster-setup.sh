@@ -32,13 +32,13 @@ done
 
 # --- Replace placeholders in trust policies ---
 echo ">>> Preparing trust policies..."
-sed "s|<ACCOUNT_ID>|${AWS_ACCOUNT_ID}|g; s|<OIDC_URL>|${OIDC_URL}|g" \
+sed "s|851725602228|${AWS_ACCOUNT_ID}|g; s|<OIDC_URL>|${OIDC_URL}|g" \
   iam/backend-trust-policy.json > /tmp/backend-trust.json
-sed "s|<ACCOUNT_ID>|${AWS_ACCOUNT_ID}|g; s|<OIDC_URL>|${OIDC_URL}|g" \
+sed "s|851725602228|${AWS_ACCOUNT_ID}|g; s|<OIDC_URL>|${OIDC_URL}|g" \
   iam/external-secrets-trust-policy.json > /tmp/ext-secrets-trust.json
-sed "s|<ACCOUNT_ID>|${AWS_ACCOUNT_ID}|g; s|<OIDC_URL>|${OIDC_URL}|g" \
+sed "s|851725602228|${AWS_ACCOUNT_ID}|g; s|<OIDC_URL>|${OIDC_URL}|g" \
   iam/fluentbit-trust-policy.json > /tmp/fluentbit-trust.json
-sed "s|<ACCOUNT_ID>|${AWS_ACCOUNT_ID}|g; s|<OIDC_URL>|${OIDC_URL}|g" \
+sed "s|851725602228|${AWS_ACCOUNT_ID}|g; s|<OIDC_URL>|${OIDC_URL}|g" \
   iam/velero-trust-policy.json > /tmp/velero-trust.json
 
 # Helper function - create role only if it doesn't exist

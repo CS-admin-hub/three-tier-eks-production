@@ -44,9 +44,8 @@ spec:
               - securityContext:
                   runAsNonRoot: true
 
-# Policy 3: Images must come from ECR or approved registries only
+# NOTE: Replace 851725602228 before applying
 ---
-# NOTE: Replace <ACCOUNT_ID> before applying
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
@@ -64,4 +63,4 @@ spec:
         pattern:
           spec:
             containers:
-              - image: "<ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/* | mongo:* | prom/* | grafana/*"
+              - image: "851725602228.dkr.ecr.us-east-1.amazonaws.com/* | mongo:* | prom/* | grafana/*"
