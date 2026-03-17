@@ -6,8 +6,8 @@ echo "=== Installing Cluster Controllers ==="
 export CLUSTER_NAME=three-tier-cluster
 export AWS_DEFAULT_REGION=us-east-1
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-export KARPENTER_VERSION=v0.37.0
-
+# export KARPENTER_VERSION=v0.37.0
+export KARPENTER_VERSION=1.0.0
 # --- 1. Karpenter ---
 echo ">>> Installing Karpenter ${KARPENTER_VERSION}..."
 eksctl create iamserviceaccount \
@@ -16,6 +16,7 @@ eksctl create iamserviceaccount \
   --name karpenter \
   --role-name KarpenterControllerRole-${CLUSTER_NAME} \
   --attach-policy-arn arn:aws:iam::${AWS_ACCOUNT_ID}:policy/KarpenterControllerPolicy-${CLUSTER_NAME} \
+  --override-existing-serviceaccounts \
   --approve --region ${AWS_DEFAULT_REGION}
 
 helm repo add karpenter https://charts.karpenter.sh/ 2>/dev/null || true
