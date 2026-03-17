@@ -26,7 +26,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"
     spec:
-      serviceAccountName: backend-sa # IRSA - gets AWS credentials automatically
+      serviceAccountName: backend-sa
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -39,7 +39,9 @@ spec:
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: topology.kubernetes.io/zone
-          whenUnsatisfiable: DoNotSchedule
+          # CHANGED: from DoNotSchedule to ScheduleAnyway to allow pods to run
+
+          whenUnsatisfiable: ScheduleAnyway
           labelSelector:
             matchLabels:
               role: backend
@@ -52,7 +54,7 @@ spec:
             - name: MONGO_URI
               valueFrom:
                 secretKeyRef:
-                  name: mongodb-secret # Created by External Secrets Operator
+                  name: mongodb-secret
                   key: MONGO_URI
             - name: NODE_ENV
               value: "production"
@@ -77,20 +79,13 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
-          # securityContext:
-          #   runAsNonRoot: true
-          #   runAsUser: 1000
-          #   readOnlyRootFilesystem: true
-          #   allowPrivilegeEscalation: false
-          #   capabilities:
-          #     drop: [ALL]
           securityContext:
             runAsNonRoot: true
-            runAsUser: 1001      # changed from 1000 to 1001
+            runAsUser: 1001
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
             capabilities:
-             drop: [ALL]
+              drop: [ALL]
           volumeMounts:
             - name: tmp
               mountPath: /tmp

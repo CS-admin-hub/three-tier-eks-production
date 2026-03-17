@@ -16,7 +16,7 @@ spec:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 1
-      maxUnavailable: 0 # Zero downtime - never kill before new is ready
+      maxUnavailable: 0
   template:
     metadata:
       labels:
@@ -34,11 +34,13 @@ spec:
                   - key: role
                     operator: In
                     values: [frontend]
-              topologyKey: kubernetes.io/hostname # Force different nodes
+              topologyKey: kubernetes.io/hostname
       topologySpreadConstraints:
         - maxSkew: 1
-          topologyKey: topology.kubernetes.io/zone # Spread across AZs
-          whenUnsatisfiable: DoNotSchedule
+          topologyKey: topology.kubernetes.io/zone
+          # CHANGED: from DoNotSchedule to ScheduleAnyway to allow pods to run
+
+          whenUnsatisfiable: ScheduleAnyway
           labelSelector:
             matchLabels:
               role: frontend
@@ -68,17 +70,9 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
-          # securityContext:
-
-          #   runAsNonRoot: true
-          #   runAsUser: 1000
-          #   readOnlyRootFilesystem: true
-          #   allowPrivilegeEscalation: false
-          #   capabilities:
-          #     drop: [ALL]
           securityContext:
             runAsNonRoot: true
-            runAsUser: 1001 # changed from 1000 to 1001
+            runAsUser: 1001
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
             capabilities:
