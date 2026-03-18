@@ -1,10 +1,10 @@
-name: Build and Push to ECR
+name: Build and Push to ECR + GitOps Update
 
 on:
   push:
     branches:
       - dev
-      # - main
+      # - main   # enable after testing
 
 permissions:
   id-token: write
@@ -19,9 +19,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ======================
+      # CHECKOUT CODE
+      # ======================
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # ======================
+      # AWS AUTH (OIDC)
+      # ======================
       - name: Configure AWS Credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -31,12 +37,21 @@ jobs:
       - name: Verify AWS Identity
         run: aws sts get-caller-identity
 
+      # ======================
+      # ECR LOGIN
+      # ======================
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
+      # ======================
+      # SET IMAGE TAG
+      # ======================
       - name: Set Image Tag
         run: echo "IMAGE_TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
+      # ======================
+      # FRONTEND BUILD & PUSH
+      # ======================
       - name: Build Frontend
         run: docker build -t frontend:${IMAGE_TAG} ./frontend
 
@@ -49,6 +64,9 @@ jobs:
         run: |
           docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/three-tier-frontend:${IMAGE_TAG}
 
+      # ======================
+      # BACKEND BUILD & PUSH
+      # ======================
       - name: Build Backend
         run: docker build -t backend:${IMAGE_TAG} ./backend
 
@@ -60,3 +78,27 @@ jobs:
       - name: Push Backend
         run: |
           docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/three-tier-backend:${IMAGE_TAG}
+
+      # ======================
+      # UPDATE GITOPS REPO
+      # ======================
+      - name: Clone GitOps Repo
+        run: |
+          git clone https://x-access-token:${{ secrets.GITOPS_TOKEN }}@github.com/CS-admin-hub/three-tier-gitops.git
+
+      - name: Update Image Tag in Values Files
+        run: |
+          cd three-tier-gitops
+
+          sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/frontend-values.yaml
+          sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/backend-values.yaml
+
+      - name: Commit and Push Changes
+        run: |
+          cd three-tier-gitops
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add .
+          git commit -m "Update image tag to ${IMAGE_TAG}" || echo "No changes to commit"
+          git push
