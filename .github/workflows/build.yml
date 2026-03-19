@@ -85,6 +85,8 @@ jobs:
       - name: Clone GitOps Repo
         run: |
           git clone https://x-access-token:${{ secrets.GITOPS_TOKEN }}@github.com/CS-admin-hub/three-tier-gitops.git
+          echo "=== VERIFY CLONE ==="
+          ls -R three-tier-gitops
 
       - name: Update Image Tag in Values Files
         run: |
