@@ -92,20 +92,64 @@ jobs:
         run: |
           cd three-tier-gitops
 
-          #   sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/frontend-values.yaml
-          #   sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/backend-values.yaml
-          echo " === DEBUG: LIST FILES ==="
-          ls -R
+          echo "=== INSTALLING YQ ==="
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O yq
+          chmod +x yq
 
-          echo "=== UPDATING FILES ==="
-          #   sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/frontend-values.yaml || echo "frontend file not found"
-          #   sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/backend-values.yaml || echo "backend file not found"
-          sed -i "s|^\s*tag:.*|  tag: ${IMAGE_TAG}|" environments/dev/frontend-values.yaml
-          sed -i "s|^\s*tag:.*|  tag: ${IMAGE_TAG}|" environments/dev/backend-values.yaml
+          echo "Using IMAGE_TAG: $IMAGE_TAG"
 
-          echo "=== VERIFY CHANGES ==="
+          echo "=== UPDATING FRONTEND ==="
+          if [ -f environments/dev/frontend-values.yaml ]; then
+            CURRENT_TAG=$(./yq eval '.image.tag' environments/dev/frontend-values.yaml)
+            echo "Current frontend tag: $CURRENT_TAG"
+
+            ./yq eval ".image.tag = \"$IMAGE_TAG\"" -i environments/dev/frontend-values.yaml
+
+            NEW_TAG=$(./yq eval '.image.tag' environments/dev/frontend-values.yaml)
+            echo "New frontend tag: $NEW_TAG"
+          else
+            echo " Frontend file not found"
+            ls -la environments/dev/
+          fi
+
+          echo "=== UPDATING BACKEND ==="
+          if [ -f environments/dev/backend-values.yaml ]; then
+            CURRENT_TAG=$(./yq eval '.image.tag' environments/dev/backend-values.yaml)
+            echo "Current backend tag: $CURRENT_TAG"
+
+            ./yq eval ".image.tag = \"$IMAGE_TAG\"" -i environments/dev/backend-values.yaml
+
+            NEW_TAG=$(./yq eval '.image.tag' environments/dev/backend-values.yaml)
+            echo "New backend tag: $NEW_TAG"
+          else
+            echo " Backend file not found"
+            ls -la environments/dev/
+          fi
+
+          echo "=== FINAL VERIFICATION ==="
+          echo "--- Frontend values ---"
           cat environments/dev/frontend-values.yaml
+          echo "--- Backend values ---"
           cat environments/dev/backend-values.yaml
+
+      #   - name: Update Image Tag in Values Files
+    #     run: |
+    #       cd three-tier-gitops
+
+    #       #   sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/frontend-values.yaml
+    #       #   sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/backend-values.yaml
+    #       echo " === DEBUG: LIST FILES ==="
+    #       ls -R
+
+    #       echo "=== UPDATING FILES ==="
+    #       #   sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/frontend-values.yaml || echo "frontend file not found"
+    #       #   sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/backend-values.yaml || echo "backend file not found"
+    #       sed -i "s|^\s*tag:.*|  tag: ${IMAGE_TAG}|" environments/dev/frontend-values.yaml
+    #       sed -i "s|^\s*tag:.*|  tag: ${IMAGE_TAG}|" environments/dev/backend-values.yaml
+
+    #       echo "=== VERIFY CHANGES ==="
+    #       cat environments/dev/frontend-values.yaml
+    #       cat environments/dev/backend-values.yaml
 
       - name: Commit and Push Changes
         run: |
