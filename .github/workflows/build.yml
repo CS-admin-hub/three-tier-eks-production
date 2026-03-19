@@ -98,8 +98,11 @@ jobs:
           ls -R
 
           echo "=== UPDATING FILES ==="
-          sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/frontend-values.yaml || echo "frontend file not found"
-          sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/backend-values.yaml || echo "backend file not found"
+          #   sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/frontend-values.yaml || echo "frontend file not found"
+          #   sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/backend-values.yaml || echo "backend file not found"
+          sed -i "s|^\s*tag:.*|  tag: ${IMAGE_TAG}|" environments/dev/frontend-values.yaml
+          sed -i "s|^\s*tag:.*|  tag: ${IMAGE_TAG}|" environments/dev/backend-values.yaml
+
           echo "=== VERIFY CHANGES ==="
           cat environments/dev/frontend-values.yaml
           cat environments/dev/backend-values.yaml
