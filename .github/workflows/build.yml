@@ -92,14 +92,17 @@ jobs:
         run: |
           cd three-tier-gitops
 
-            #   sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/frontend-values.yaml
-            #   sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/backend-values.yaml
-            echo " === DEBUG: LIST FILES ==="
-            ls -R
+          #   sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/frontend-values.yaml
+          #   sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/backend-values.yaml
+          echo " === DEBUG: LIST FILES ==="
+          ls -R
 
-            echo "=== UPDATING FILES ==="
+          echo "=== UPDATING FILES ==="
           sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/frontend-values.yaml || echo "frontend file not found"
           sed -i "s/tag: .*/tag: ${IMAGE_TAG}/" environments/dev/backend-values.yaml || echo "backend file not found"
+          echo "=== VERIFY CHANGES ==="
+          cat environments/dev/frontend-values.yaml
+          cat environments/dev/backend-values.yaml
 
       - name: Commit and Push Changes
         run: |
