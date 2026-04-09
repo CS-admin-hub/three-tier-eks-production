@@ -1,4 +1,3 @@
-# k8s_manifests/backend/deployment.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,26 +6,34 @@ metadata:
   labels:
     app: backend
     version: "1.0"
+
 spec:
   replicas: 2
+
   selector:
     matchLabels:
       role: backend
+
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 1
-      maxUnavailable: 0
+      maxUnavailable: 0   # zero-downtime: old pod never killed before new is ready
+
   template:
     metadata:
       labels:
         role: backend
         app: backend
       annotations:
+        # NEW in v2: Prometheus scrape annotation — used by Phase 4 monitoring
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"
+
     spec:
-      serviceAccountName: backend-sa
+      serviceAccountName: backend-sa   # IRSA — inherits BackendIRSARole
+
+      # Preferred anti-affinity: tries different nodes but doesn't block scheduling
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -38,26 +45,32 @@ spec:
                       operator: In
                       values: [backend]
                 topologyKey: kubernetes.io/hostname
+
+      # NEW in v2: spread pods across AZs — prevents both replicas in same AZ
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: topology.kubernetes.io/zone
-          whenUnsatisfiable: ScheduleAnyway
+          whenUnsatisfiable: DoNotSchedule
           labelSelector:
             matchLabels:
               role: backend
+
       containers:
         - name: backend
           image: 851725602228.dkr.ecr.us-east-1.amazonaws.com/three-tier-backend:latest
+
           ports:
             - containerPort: 8080
+
           env:
             - name: MONGO_URI
               valueFrom:
                 secretKeyRef:
-                  name: mongodb-secret
+                  name: mongodb-secret   # created by External Secrets Operator
                   key: MONGO_URI
             - name: NODE_ENV
               value: "production"
+
           livenessProbe:
             httpGet:
               path: /health
@@ -65,6 +78,7 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 10
             failureThreshold: 3
+
           readinessProbe:
             httpGet:
               path: /health
@@ -72,6 +86,7 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 5
             failureThreshold: 3
+
           resources:
             requests:
               memory: "128Mi"
@@ -79,17 +94,28 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
+
           securityContext:
             runAsNonRoot: true
             runAsUser: 1001
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
             capabilities:
-              drop: [ALL]
+              drop:
+                - ALL
+
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: docdb-tls
+              mountPath: /etc/ssl/docdb   # must match tlsCAFile in MONGO_URI
+              readOnly: true
+
       volumes:
         - name: tmp
           emptyDir: {}
+        - name: docdb-tls
+          configMap:
+            name: docdb-tls
+
       terminationGracePeriodSeconds: 30

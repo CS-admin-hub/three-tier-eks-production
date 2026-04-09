@@ -1,4 +1,3 @@
-# k8s_manifests/frontend/deployment.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,16 +6,20 @@ metadata:
   labels:
     app: frontend
     version: "1.0"
+
 spec:
   replicas: 2
+
   selector:
     matchLabels:
       role: frontend
+
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxSurge: 1
       maxUnavailable: 0
+
   template:
     metadata:
       labels:
@@ -25,7 +28,10 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "3000"
+
     spec:
+      # No serviceAccountName — frontend makes no AWS API calls
+
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -37,32 +43,39 @@ spec:
                       operator: In
                       values: [frontend]
                 topologyKey: kubernetes.io/hostname
+
+      # Spread frontend pods across AZs
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: topology.kubernetes.io/zone
-          whenUnsatisfiable: ScheduleAnyway
+          whenUnsatisfiable: DoNotSchedule
           labelSelector:
             matchLabels:
               role: frontend
+
       containers:
         - name: frontend
           image: 851725602228.dkr.ecr.us-east-1.amazonaws.com/three-tier-frontend:latest
+
           ports:
             - containerPort: 3000
+
           livenessProbe:
             httpGet:
-              path: /
+              path: /health
               port: 3000
             initialDelaySeconds: 30
             periodSeconds: 10
             failureThreshold: 3
+
           readinessProbe:
             httpGet:
-              path: /
+              path: /health
               port: 3000
             initialDelaySeconds: 10
             periodSeconds: 5
             failureThreshold: 3
+
           resources:
             requests:
               memory: "128Mi"
@@ -70,13 +83,16 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
+
           securityContext:
             runAsNonRoot: true
             runAsUser: 1001
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
             capabilities:
-              drop: [ALL]
+              drop:
+                - ALL
+
           volumeMounts:
             - name: tmp
               mountPath: /tmp
@@ -84,6 +100,7 @@ spec:
               mountPath: /var/cache/nginx
             - name: nginx-run
               mountPath: /var/run
+
       volumes:
         - name: tmp
           emptyDir: {}
@@ -91,4 +108,5 @@ spec:
           emptyDir: {}
         - name: nginx-run
           emptyDir: {}
+
       terminationGracePeriodSeconds: 30

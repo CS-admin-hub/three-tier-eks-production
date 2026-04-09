@@ -1,43 +1,35 @@
-# # backend/Dockerfile
-# FROM node:18-alpine
+# backend/Dockerfile 
 
-# # Create non-root user - required by Kyverno policy (disallow-root-user)
-# RUN addgroup -g 1000 appgroup && \
-#     adduser -u 1000 -G appgroup -s /bin/sh -D appuser
+FROM node:18-alpine 
 
-# WORKDIR /app
+  
 
-# # Copy package files first for better layer caching
-# COPY package*.json ./
-# RUN npm install
+# Non-root user — required by Kyverno disallow-root-user policy 
 
-# # Copy source with correct ownership
-# COPY --chown=appuser:appgroup . .
+# UID 1001 because 1000 is taken in node:18-alpine 
 
-# # Switch to non-root user
-# USER 1000
+RUN addgroup -g 1001 appgroup && \ 
 
-# EXPOSE 8080
+    adduser -u 1001 -G appgroup -s /bin/sh -D appuser 
 
-# # index.js is at root of backend/ (not in src/)
-# CMD ["node", "index.js"]
+  
 
+WORKDIR /app 
 
-# backend/Dockerfile
-FROM node:18-alpine
+COPY package*.json ./ 
 
-# Use GID 1001 - 1000 is already taken by node:18-alpine
-RUN addgroup -g 1001 appgroup && \
-    adduser -u 1001 -G appgroup -s /bin/sh -D appuser
+RUN npm install 
 
-WORKDIR /app
+  
 
-COPY package*.json ./
-RUN npm install
+# --chown ensures appuser owns files (required for readOnlyRootFilesystem) 
 
-COPY --chown=appuser:appgroup . .
+COPY --chown=appuser:appgroup . . 
 
-USER 1001
+  
 
-EXPOSE 8080
-CMD ["node", "index.js"]
+USER 1001 
+
+EXPOSE 8080 
+
+CMD ["node", "index.js"] 

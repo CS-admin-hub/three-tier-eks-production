@@ -1,16 +1,21 @@
-# k8s_manifests/frontend/hpa.yaml
+# k8s_manifests/frontend-hpa.yaml
+# (backend-hpa.yaml is identical, just change name and targetRef)
+
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: frontend-hpa
   namespace: workshop
+
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
     name: frontend
-  minReplicas: 2
+
+  minReplicas: 2   # never below 2 — HA requirement
   maxReplicas: 6
+
   metrics:
     - type: Resource
       resource:
@@ -18,14 +23,17 @@ spec:
         target:
           type: Utilization
           averageUtilization: 70
+
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
           averageUtilization: 80
+
   behavior:
     scaleUp:
-      stabilizationWindowSeconds: 60
+      stabilizationWindowSeconds: 60   # scale up quickly
+
     scaleDown:
-      stabilizationWindowSeconds: 300 # Wait 5 mins before scaling down
+      stabilizationWindowSeconds: 300  # avoid frequent scale down

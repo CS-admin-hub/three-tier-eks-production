@@ -9,10 +9,15 @@ metadata:
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
     alb.ingress.kubernetes.io/ssl-redirect: '443'
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:851725602228:certificate/ff8037d3-3877-4f28-bb1c-6c22217cacc9
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:us-east-1:851725602228:certificate/a1b03ab5-c4fe-4c46-9ab4-611398669b04"
     alb.ingress.kubernetes.io/healthcheck-path: /
     alb.ingress.kubernetes.io/healthcheck-interval-seconds: '15'
     alb.ingress.kubernetes.io/success-codes: '200,301,302'
+
+    # ✅ REQUIRED for ArgoCD (gRPC support)
+    alb.ingress.kubernetes.io/backend-protocol: HTTPS
+    alb.ingress.kubernetes.io/backend-protocol-version: GRPC
+
 spec:
   ingressClassName: alb
   rules:
@@ -26,6 +31,16 @@ spec:
                 name: backend
                 port:
                   number: 8080
+
+          # ✅ ArgoCD path (ADDED)
+          - path: /argocd
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 443
+
           - path: /
             pathType: Prefix
             backend:
