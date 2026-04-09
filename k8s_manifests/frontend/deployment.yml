@@ -55,7 +55,7 @@ spec:
 
       containers:
         - name: frontend
-          image: 851725602228.dkr.ecr.us-east-1.amazonaws.com/three-tier-frontend:latest
+          image: 851725602228.dkr.ecr.us-east-1.amazonaws.com/three-tier-frontend:023a96c
 
           ports:
             - containerPort: 3000
