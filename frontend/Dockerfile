@@ -20,7 +20,7 @@ RUN rm -f package-lock.json && npm install --force
 
 COPY . . 
 
-ENV REACT_APP_BACKEND_URL=/api/tasks   # proxied through nginx — no hardcoded URL 
+ENV REACT_APP_BACKEND_URL=/api/tasks   
 
 RUN npm run build 
 
