@@ -12,8 +12,8 @@ spec:
     - tags:
         karpenter.sh/discovery: three-tier-cluster
   role: KarpenterNodeRole-three-tier-cluster
-  blockDeviceMappings:
-    - deviceName: /dev/xvda
+  blockdeviceMappings:
+    - stageiceName: /stage/xvda
       ebs:
         volumeSize: 20Gi
         volumeType: gp3
