@@ -15,8 +15,9 @@ metadata:
     alb.ingress.kubernetes.io/success-codes: '200,301,302'
 
     # ✅ REQUIRED for ArgoCD (gRPC support)
-    alb.ingress.kubernetes.io/backend-protocol: HTTPS
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
     alb.ingress.kubernetes.io/backend-protocol-version: GRPC
+
 
 spec:
   ingressClassName: alb
