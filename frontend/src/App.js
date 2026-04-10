@@ -11,7 +11,7 @@ class App extends Tasks {
         return (
             <div className="app">
                 <header className="app-header">
-                    <h1>Welcome to ToDo application {new Date().toLocaleTimeString()}</h1>
+                    <h1>Welcome to ToDo application new {new Date().toLocaleTimeString()}</h1>
                 </header>
                 <div className="main-content">
                     <Paper elevation={3} className="todo-container">
