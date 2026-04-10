@@ -41,6 +41,13 @@ spec:
                 name: argocd-server
                 port:
                   number: 443
+          - path: /grafana   # ✅ NEW
+            pathType: Prefix
+            backend:
+              service:
+                name: monitoring-grafana
+                port:
+                  number: 80
 
           - path: /
             pathType: Prefix
